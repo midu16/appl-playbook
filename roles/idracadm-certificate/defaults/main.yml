@@ -1,0 +1,3 @@
+---
+# defaults file for idracadm
+idrac_address: "{{ ansible_host }}"

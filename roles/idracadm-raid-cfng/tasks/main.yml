@@ -1,0 +1,137 @@
+---
+# Mihai I - 2020
+# Description: All the actions are executed on the ansible-tower and make use of the idracadm7 from DELL EMC for remote connection
+#towards to the iDRAC interfaces.
+#
+
+- name: Check if there are vDISKs created 
+  delegate_to: 127.0.0.1
+  shell: /opt/dell/srvadmin/bin/idracadm7 -r "{{ idrac_address }}" -u "{{ idrac_user }}" -p "{{ idrac_password }}" raid get vdisks
+  args:
+    executable: /bin/bash
+  register: vdisks_check
+  ignore_errors: yes
+
+- name: vdisks_check
+  debug:
+    msg: "{{ vdisks_check.rc }}"
+  
+# tasks file for dell-raid
+- name: Extracting the physical disks that needs to be configured as raid_1
+  delegate_to: 127.0.0.1
+  shell: /opt/dell/srvadmin/bin/idracadm7 -r "{{ idrac_address }}" -u "{{ idrac_user }}" -p "{{ idrac_password }}" raid get pdisks | head -n 2
+  args:
+    executable: /bin/bash
+  register: pdisks_raid_1
+  when: "{{ vdisks_check.rc }} == 1"
+ 
+- name: pdisks_raid_1
+  debug:
+    msg: "{{ pdisks_raid_1 }}"
+  when: "{{ vdisks_check.rc }} == 1"
+
+- name: Extracting the physical disks that needs to be configured as
+  delegate_to: 127.0.0.1
+  shell: /opt/dell/srvadmin/bin/idracadm7 -r "{{ idrac_address }}" -u "{{ idrac_user }}" -p "{{ idrac_password }}" raid get pdisks | awk 'NR>2'
+  args:
+    executable: /bin/bash
+  register: pdisks_raid_0
+  when: "{{ vdisks_check.rc }} == 1"
+ 
+- name: pdisks_all
+  debug:
+    msg: "{{ pdisks_raid_0 }}"
+  when: "{{ vdisks_check.rc }} == 1"
+
+# identify the RAID controller
+- name: get the RAID controller
+  delegate_to: 127.0.0.1
+  shell: /opt/dell/srvadmin/bin/idracadm7 -r "{{ idrac_address }}" -u "{{ idrac_user }}" -p "{{ idrac_password }}" raid get controllers | head -n 1
+#  register: raid_controller
+  when: "{{ vdisks_check.rc }} == 1"
+  args:
+    executable: /bin/bash
+
+ #=======================================================================================================
+ # The configuration of the vDISKs will be perform ONLY if the vdisks_check is empty.
+ # IF there will be any vDISK define, the process of extra definition will be stop and check manually.
+ # I choose this, due to high posibility that the architecture mmight be change.
+ # !Another automation process should be found, after find all the cases to be served.
+ #=======================================================================================================
+- name: Configure the physical disk as RAID0
+  delegate_to: 127.0.0.1
+  shell: "/opt/dell/srvadmin/bin/idracadm7 -r {{ idrac_address }} -u {{ idrac_user }} -p {{ idrac_password }} raid createvd:{{ raid_controller}} -rl r0 -wp wb -rp ra -name {{ item.vdisks_name }}  -pdkey:{{item.pdisks_name}}"
+  when: "{{ vdisks_check.rc }} == 1"
+  with_items:
+##############
+#Disk.Virtual.1:RAID.Slot.6-1   Disk.Bay.2:Enclosure.Internal.0-1:RAID.Slot.6-1
+#Disk.Virtual.2:RAID.Slot.6-1   Disk.Bay.3:Enclosure.Internal.0-1:RAID.Slot.6-1
+#Disk.Virtual.3:RAID.Slot.6-1   Disk.Bay.4:Enclosure.Internal.0-1:RAID.Slot.6-1
+#Disk.Virtual.4:RAID.Slot.6-1   Disk.Bay.5:Enclosure.Internal.0-1:RAID.Slot.6-1
+#Disk.Virtual.5:RAID.Slot.6-1   Disk.Bay.6:Enclosure.Internal.0-1:RAID.Slot.6-1
+#Disk.Virtual.6:RAID.Slot.6-1   Disk.Bay.7:Enclosure.Internal.0-1:RAID.Slot.6-1
+#Disk.Virtual.7:RAID.Slot.6-1   Disk.Bay.8:Enclosure.Internal.0-1:RAID.Slot.6-1
+#Disk.Virtual.8:RAID.Slot.6-1   Disk.Bay.9:Enclosure.Internal.0-1:RAID.Slot.6-1
+#Disk.Virtual.9:RAID.Slot.6-1   Disk.Bay.10:Enclosure.Internal.0-1:RAID.Slot.6-1
+#Disk.Virtual.10:RAID.Slot.6-1  Disk.Bay.11:Enclosure.Internal.0-1:RAID.Slot.6-1
+#Disk.Virtual.11:RAID.Slot.6-1  Disk.Bay.12:Enclosure.Internal.0-1:RAID.Slot.6-1
+#Disk.Virtual.12:RAID.Slot.6-1  Disk.Bay.13:Enclosure.Internal.0-1:RAID.Slot.6-1
+##############
+    - { vdisks_name: 'Disk.Virtual.1:RAID.Slot.6-1', pdisks_name: 'Disk.Bay.2:Enclosure.Internal.0-1:RAID.Slot.6-1' }
+    - { vdisks_name: 'Disk.Virtual.2:RAID.Slot.6-1', pdisks_name: 'Disk.Bay.3:Enclosure.Internal.0-1:RAID.Slot.6-1' }
+    - { vdisks_name: 'Disk.Virtual.3:RAID.Slot.6-1', pdisks_name: 'Disk.Bay.4:Enclosure.Internal.0-1:RAID.Slot.6-1' }
+    - { vdisks_name: 'Disk.Virtual.4:RAID.Slot.6-1', pdisks_name: 'Disk.Bay.5:Enclosure.Internal.0-1:RAID.Slot.6-1' }
+    - { vdisks_name: 'Disk.Virtual.5:RAID.Slot.6-1', pdisks_name: 'Disk.Bay.6:Enclosure.Internal.0-1:RAID.Slot.6-1' }
+    - { vdisks_name: 'Disk.Virtual.6:RAID.Slot.6-1', pdisks_name: 'Disk.Bay.7:Enclosure.Internal.0-1:RAID.Slot.6-1' }
+    - { vdisks_name: 'Disk.Virtual.7:RAID.Slot.6-1', pdisks_name: 'Disk.Bay.8:Enclosure.Internal.0-1:RAID.Slot.6-1' }
+    - { vdisks_name: 'Disk.Virtual.8:RAID.Slot.6-1', pdisks_name: 'Disk.Bay.9:Enclosure.Internal.0-1:RAID.Slot.6-1' }
+    - { vdisks_name: 'Disk.Virtual.9:RAID.Slot.6-1', pdisks_name: 'Disk.Bay.10:Enclosure.Internal.0-1:RAID.Slot.6-1' }
+    - { vdisks_name: 'Disk.Virtual.10:RAID.Slot.6-1', pdisks_name: 'Disk.Bay.11:Enclosure.Internal.0-1:RAID.Slot.6-1' }
+    - { vdisks_name: 'Disk.Virtual.11:RAID.Slot.6-1', pdisks_name: 'Disk.Bay.12:Enclosure.Internal.0-1:RAID.Slot.6-1' }
+    - { vdisks_name: 'Disk.Virtual.12:RAID.Slot.6-1', pdisks_name: 'Disk.Bay.13:Enclosure.Internal.0-1:RAID.Slot.6-1' }
+  args:
+    executable: /bin/bash
+  ignore_errors: yes
+
+- name: Configure the physical disk as RAID1
+  delegate_to: 127.0.0.1
+  shell: "/opt/dell/srvadmin/bin/idracadm7 -r {{ idrac_address }} -u {{ idrac_user }} -p {{ idrac_password }} raid createvd:{{ raid_controller }} -rl r1 -wp wb -rp ra -name {{ item }} -pdkey:{{ raid1_disks }}"
+  args:
+    executable: /bin/bash
+  when: "{{ vdisks_check.rc }} == 1"
+  ignore_errors: yes
+##############
+#Disk.Virtual.0:RAID.Slot.6-1   Disk.Bay.0:Enclosure.Internal.0-1:RAID.Slot.6-1,Disk.Bay.1:Enclosure.Internal.0-1:RAID.Slot.6-1
+##############
+  with_items:
+    - Disk.Virtual.0:RAID.Slot.6-1
+
+#=======================================================================================================
+# Schedule the job 
+- name: Schedule the job 
+  delegate_to: 127.0.0.1
+  shell: /opt/dell/srvadmin/bin/idracadm7 -r "{{ idrac_address }}" -u "{{ idrac_user }}" -p "{{ idrac_password }}"  jobqueue create "{{ raid_controller }}"
+  args:
+    executable: /bin/bash
+  when: "{{ vdisks_check.rc }} == 1"
+  ignore_errors: yes
+
+- name: Server restart
+  delegate_to: 127.0.0.1
+  shell: /opt/dell/srvadmin/bin/idracadm7 -r "{{ idrac_address }}" -u "{{ idrac_user }}" -p "{{ idrac_password }}" serveraction hardreset
+  args:
+    executable: /bin/bash
+  when: "{{ vdisks_check.rc }} == 1"
+  ignore_errors: yes
+
+# Restarting the iDRAC service for configuration
+- name: iDRAC service restart
+  delegate_to: 127.0.0.1
+  when: "{{ vdisks_check.rc }} == 1"
+  expect:
+    command: /opt/dell/srvadmin/bin/idracadm7 -r "{{ idrac_address }}" -i racreset
+    responses:
+      (?i)UserName: "{{ idrac_user }}"
+      (?i)Password: "{{ idrac_password }}"
+
+

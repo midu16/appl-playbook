@@ -1,0 +1,8 @@
+---
+- hosts: all
+  gather_facts: no
+  vars_files:
+    - roles/idracadm/vars/global.yml
+    - roles/idracadm/vars/vault
+  roles:
+  - idracadm 

@@ -1,0 +1,8 @@
+---
+- hosts: all
+  gather_facts: no
+  vars_files:
+    - roles/idracadm-boot-change-order/vars/global.yml
+    - roles/idracadm-boot-change-order/vars/vault
+  roles:
+  - idracadm-boot-change-order 

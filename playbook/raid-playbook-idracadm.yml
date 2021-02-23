@@ -1,0 +1,8 @@
+---
+- hosts: all
+  gather_facts: no
+  vars_files:
+    - roles/idracadm-raid-cfng/vars/global.yml
+    - roles/idracadm-raid-cfng/vars/vault
+  roles:
+  - idracadm-raid-cfng

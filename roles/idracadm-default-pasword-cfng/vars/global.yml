@@ -1,0 +1,6 @@
+---
+
+idrac_user: "root"
+idrac_password: "{{ vault_idrac_password }}"
+
+idrac_default_password: "{{ vault_default_idrac_password }}"

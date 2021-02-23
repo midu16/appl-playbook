@@ -1,0 +1,29 @@
+---
+# Mihai I - 2020
+# Description: Exchanging the default password provided by DELLEMC for the iDRAC interface.
+#
+#
+
+- name: Change the default password of the iDRAC
+  delegate_to: 127.0.0.1
+  shell: /opt/dell/srvadmin/bin/idracadm7 -r "{{ idrac_address }}" -u "{{ idrac_user }}" -p "{{ idrac_default_password }}" set iDRAC.Users.2.Password "{{ idrac_password }}"
+  ignore_errors: yes
+  args:
+    executable: /bin/bash
+
+
+
+# update the hostname and domain
+- name: Update the hostname of the server
+  delegate_to: 127.0.0.1
+  shell: /opt/dell/srvadmin/bin/idracadm7 -r "{{ idrac_address }}"  -u "{{ idrac_user }}" -p "{{ idrac_password }}" set iDRAC.NIC.DNSRacName "{{ rac_name }}"
+  args:
+    executable: /bin/bash
+
+- name: Update the domain 
+  delegate_to: 127.0.0.1
+  shell: /opt/dell/srvadmin/bin/idracadm7 -r "{{ idrac_address }}"  -u "{{ idrac_user }}" -p "{{ idrac_password }}" set iDRAC.NIC.DNSDomainName "{{ rac_domain }}"
+  args:
+    executable: /bin/bash
+
+

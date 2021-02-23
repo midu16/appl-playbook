@@ -1,0 +1,44 @@
+---
+# tasks file for idracadm
+
+##################################################################################################################################################################################
+#- name: Collect only facts returned by facter
+#  setup:
+#    gather_subset:
+#      - '!all'
+#      - '!any'
+#      - facter
+
+##################################################################################################################################################################################
+- name: Debug the idrac_address
+  debug:
+    var: idrac_address
+
+##################################################################################################################################################################################
+- name: SSL Key Upload
+  delegate_to: 127.0.0.1
+  expect:
+    command: /opt/dell/srvadmin/bin/idracadm7 -r "{{ idrac_address }}" -i sslkeyupload -t 1 -f "{{ role_path }}/files/console.key"
+    responses:
+      (?i)UserName: "{{ idrac_user }}"
+      (?i)Password: "{{ idrac_password }}" 
+#  no_log: true
+
+- name: SSL Cert Upload
+  delegate_to: 127.0.0.1
+  expect:
+    command: /opt/dell/srvadmin/bin/idracadm7 -r "{{ idrac_address }}" -i sslcertupload -t 1 -f "{{ role_path }}/files/console.pem"
+    responses:
+      (?i)UserName: "{{ idrac_user }}"
+      (?i)Password: "{{ idrac_password }}"
+
+- name: iDRAC service restart
+  delegate_to: 127.0.0.1
+  expect:
+    command: /opt/dell/srvadmin/bin/idracadm7 -r "{{ idrac_address }}" -i racreset
+    responses:
+      (?i)UserName: "{{ idrac_user }}"
+      (?i)Password: "{{ idrac_password }}"
+
+
+##################################################################################################################################################################################

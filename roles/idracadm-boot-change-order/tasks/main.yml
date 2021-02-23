@@ -1,0 +1,28 @@
+---
+# Mihai I - 2020
+# Description: Exchange the BootOrder
+#
+#
+
+
+- name: Set Bios Boot Order
+  delegate_to: 127.0.0.1
+  shell: /opt/dell/srvadmin/bin/idracadm7 -r "{{ idrac_address }}"  -u "{{ idrac_user }}" -p "{{ idrac_password }}" set BIOS.BiosBootSettings.BootSeq HardDisk.List.1-1,NIC.Slot.2-1-1,NIC.Slot.3-1-1
+  ignore_errors: yes
+  args:
+    executable: /bin/bash
+        
+
+- name: Schedule the Job
+  delegate_to: 127.0.0.1
+  shell: /opt/dell/srvadmin/bin/idracadm7 -r "{{ idrac_address }}"  -u "{{ idrac_user }}" -p "{{ idrac_password }}" jobqueue create BIOS.Setup.1-1
+  ignore_errors: yes
+  args:
+    executable: /bin/bash
+        
+- name: Server restart
+  delegate_to: 127.0.0.1
+  shell: /opt/dell/srvadmin/bin/idracadm7 -r "{{ idrac_address }}"  -u "{{ idrac_user }}" -p "{{ idrac_password }}" serveraction hardreset
+  ignore_errors: yes
+  args:
+    executable: /bin/bash

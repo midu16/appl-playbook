@@ -1,0 +1,8 @@
+---
+- hosts: all
+  gather_facts: no
+  vars_files:
+    - roles/idracadm-default-pasword-cfng/vars/global.yml
+    - roles/idracadm-default-pasword-cfng/vars/vault
+  roles:
+  - idracadm-default-pasword-cfng

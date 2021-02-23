@@ -1,0 +1,61 @@
+---
+# Mihai I - 2020
+# Description: Exchanging the default profile of Provider user.
+#
+#
+
+- name: Update user Provider password
+  delegate_to: 127.0.0.1
+  shell: /opt/dell/srvadmin/bin/idracadm7 -r "{{ idrac_address }}"  -u "{{ idrac_user }}" -p "{{ idrac_password }}" set iDRAC.Users.3.Password "{{idrac_provider_password}}"
+  args:
+    executable: /bin/bash
+
+
+- name: Update user Provider enable parameter
+  delegate_to: 127.0.0.1
+  shell: /opt/dell/srvadmin/bin/idracadm7 -r "{{ idrac_address }}"  -u "{{ idrac_user }}" -p "{{ idrac_password }}" set iDRAC.Users.3.Enable "{{enable}}"
+  args:
+    executable: /bin/bash
+
+- name: Update user Provider IMPI-LAN parameter
+  delegate_to: 127.0.0.1
+  shell: /opt/dell/srvadmin/bin/idracadm7 -r "{{ idrac_address }}"  -u "{{ idrac_user }}" -p "{{ idrac_password }}" set iDRAC.Users.3.IpmiLanPrivilege "{{IpmiLanPrivilege}}"
+  args:
+    executable: /bin/bash
+    
+- name: Update user Provider IMPI-SERIAL parameter
+  delegate_to: 127.0.0.1
+  shell: /opt/dell/srvadmin/bin/idracadm7 -r "{{ idrac_address }}"  -u "{{ idrac_user }}" -p "{{ idrac_password }}" set iDRAC.Users.3.IpmiSerialPrivilege "{{IpmiSerialPrivilege}}"
+  args:
+    executable: /bin/bash
+    
+- name: Update user Provider PrivacyProtocol parameter
+  delegate_to: 127.0.0.1
+  shell: /opt/dell/srvadmin/bin/idracadm7 -r "{{ idrac_address }}"  -u "{{ idrac_user }}" -p "{{ idrac_password }}" set iDRAC.Users.3.PrivacyProtocol "{{PrivacyProtocol}}"
+  args:
+    executable: /bin/bash
+    
+    
+- name: Update user Provider Privilege parameter
+  delegate_to: 127.0.0.1
+  shell: /opt/dell/srvadmin/bin/idracadm7 -r "{{ idrac_address }}"  -u "{{ idrac_user }}" -p "{{ idrac_password }}" set iDRAC.Users.3.Privilege "{{Privilege}}"
+  args:
+    executable: /bin/bash
+    
+- name: Update user Provider SolEnable parameter
+  delegate_to: 127.0.0.1
+  shell: /opt/dell/srvadmin/bin/idracadm7 -r "{{ idrac_address }}"  -u "{{ idrac_user }}" -p "{{ idrac_password }}" set iDRAC.Users.3.SolEnable "{{SolEnable}}"
+  args:
+    executable: /bin/bash
+
+- name: Update user Provider AuthenticationProtocol parameter
+  delegate_to: 127.0.0.1
+  shell: /opt/dell/srvadmin/bin/idracadm7 -r "{{ idrac_address }}"  -u "{{ idrac_user }}" -p "{{ idrac_password }}" set iDRAC.Users.3.AuthenticationProtocol "{{AuthenticationProtocol}}"
+  args:
+    executable: /bin/bash
+
+- name: Check user Provider profile
+  delegate_to: 127.0.0.1
+  shell: /opt/dell/srvadmin/bin/idracadm7 -r "{{ idrac_address }}"  -u "{{ idrac_user }}" -p "{{ idrac_password }}" get idrac.Users.3
+  args:
+    executable: /bin/bash
