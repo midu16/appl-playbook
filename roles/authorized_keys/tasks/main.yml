@@ -1,2 +1,38 @@
 ---
 # tasks file for authorized_keys
+
+- name: check if the  .ssh directory exists
+  stat:
+    path: "{{install_path}}/.ssh"
+  register: p
+
+- name: create "{{install_path}}/.ssh" if not existing
+  file:
+    path: "{{install_path}}/.ssh"
+    state: directory
+    owner: "{{base_user}}"
+    group: "{{base_user_group}}"
+    mode: "0640"
+  when: p.stat.exists is defined and not p.stat.exists
+
+- name: check if the "{{install_path}}/.ssh/authorized_keys" exists
+  stat:
+    path: "{{install_path}}/.ssh/authorized_keys"
+  register: f
+
+- name: create "{{install_path}}/.ssh/authorized_keys" if not existing
+  file:
+    path: "{{install_path}}/.ssh/authorized_keys"
+    state: touch
+    owner: "{{base_user}}"
+    group: "{{base_user_group}}"
+    mode: "0600"
+  when: f.stat.exists is defined and not f.stat.exists
+
+- name: add the new ssh key 
+  lineinfile:
+    path: "{{install_path}}/.ssh/authorized_keys"
+    line: |
+      "{{ssh_public_key}}"
+    insertafter: EOF
+    

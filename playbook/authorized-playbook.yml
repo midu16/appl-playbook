@@ -1,0 +1,9 @@
+---
+- hosts: all
+  roles:
+    - role: authorized_keys
+      base_user: cdr
+      base_user_group: cdr
+      install_path: /appl/home/cdr
+      ssh_public_key: |
+        ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDDFV3o04mGuJlc2SKKlGHXciIAXF0d0MvQjQ1J3Zt2dxNXHMbVE1mOc6yXO4feSG5khnESMPgyMbP0nNiw1M5/XRQ0OwYSdRt3KEF/KasLVhQWyrE3KkMZAw2ZQebqy7fUrnyYoE2sE+OVfef1LEVVn+RLYeBrF5Kx0wPZ9Z2eZGoQKWrMq3ErpfPb0YThxIXPNPZ8d+FgU6wuq5LO3FNi7j3d1NewwdG0Thd6MNTENA5fmkKhH/sILIKWffeQom4KQBj0vkZ4dbc5C/tNHbclsaPBKUpkDhccTaE1k+HvKUm906+O1q66ICvGC+mIRn/k95QGEpMpfYP/mKmi54f8aD9f2Q33kmc1/5mznaQcF/v1tGpeqphVIrzrFe2LKZTb9/AFpmXLJt0I4Pqy0fYpTmYFmRfyWtAYM0F724iBXhHl/6Ht8dW9efedFahhTtEGNmIgdr1lPe1jVrKkF/sVLTf8UthY1gWyqOjteGOMuPE6J43i1qvwQP3SmIEvFdE= localhost@localhost.localhost.com
