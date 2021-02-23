@@ -1,0 +1,12 @@
+---
+# tasks file for cdr-acl
+
+- name: set the acl rules on the "{{install_path}}/route-{{source_interface}}"
+  acl:
+    path: "{{install_path}}"
+    entity: "{{base_user}}"
+    etype: user
+    permissions: rw
+    state: present
+    default: yes
+    state: present
