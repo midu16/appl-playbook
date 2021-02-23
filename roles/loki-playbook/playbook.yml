@@ -1,0 +1,372 @@
+---
+  - hosts: localhost
+    vars:
+        volume_group: "/dev/vdb"
+        loki_director: "/appl/loki"
+        promtail_director: "/tmp/promtail"
+        fs_size: "500m"
+    gather_facts: yes
+    become: yes
+    become_user: root
+    become_method: sudo
+    tasks:
+      - name: Import playbook that install ansible_architecture packages
+        import_playbook: CentOS.yml
+        when: ansible_distribution == "CentOS"
+      - name: Import playbook that install ansible_architecture packages
+        import_playbook: RHEL.yml
+        when: ansible_distribution == "RedHat"
+    #Creating the service-user groups that will manage loki-server.service and promtail.service
+      - name: Ensure group "loki" exists
+        group:
+          name: loki
+          state: present
+      - name: Ensure group "promtail" exists
+        group:
+          name: promtail
+          state: present
+    #user creation 
+    #sudo useradd -rs /bin/false loki
+      - name: Create loki service user
+        user:
+          name: loki
+          comment: Loki service user 
+          uid: 1005
+          group: loki
+          shell: /usr/bin/false
+    #sudo useradd -rs /bin/false promtail
+      - name: Create promtail service user
+        user:
+          name: promtail
+          comment: Promtail service user 
+          uid: 1055
+          group: promtail
+          shell: /usr/bin/false
+    #Create the loki director for the firt time to download the required files
+      - name: Creates sub-directories of /loki and /promtail under /tmp
+        file:
+          path: "{{item}}"
+          mode: 0775
+          state: directory
+        loop:
+          - "{{loki_director}}"
+          - "{{promtail_director}}"
+    #Create the /appl/loki for storing the configuration files.
+      - name: Creates sub-directories of /loki and /promtail under /appl
+        file:
+          path: "{{item}}"
+          mode: 0775
+          state: directory
+        loop:
+          - "{{loki_director}}"
+          - "{{promtail_director}}"
+    #Download the Loki and Promtail .zip files that correspond to your system
+      - name: Download Loki and Promtail for amd64 architecture
+        get_url:
+          url: "{{item.url}}"
+          dest: "{{item.directory}}"
+          mode: 0755
+          group: root
+          owner: root
+        loop:
+          -  { url: 'https://github.com/grafana/loki/releases/download/v2.0.0/loki-linux-amd64.zip' , directory: '/tmp/loki' }
+          -  { url: 'https://github.com/grafana/loki/releases/download/v2.1.0/promtail-linux-amd64.zip' , directory: '/tmp/promtail' }
+        when: ansible_architecture == "amd64"
+      - name: Download Loki and Promtailfor arm architecture
+        get_url:
+          url: "{{item.url}}"
+          dest: "{{item.directory}}"
+          mode: 0755
+          group: root
+          owner: root
+        loop:
+          -  { url: 'https://github.com/grafana/loki/releases/download/v2.0.0/loki-linux-arm.zip' , directory: '/tmp/loki' }
+          -  { url: 'https://github.com/grafana/loki/releases/download/v2.1.0/promtail-linux-arm.zip' , directory: '/tmp/promtail' }
+        when: ansible_architecture == "arm"
+      - name: Unzip for amd64 architecture
+        unarchive:
+          src: "{{item.file}}" 
+          dest: "{{item.directory}}"
+          remote_src: yes
+        loop:
+          - { file: '/tmp/loki/loki-linux-amd64.zip', directory: '/tmp/loki' }
+          - { file: '/tmp/promtail/promtail-linux-amd64.zip', directory: '/tmp/promtail' }
+        when: ansible_architecture == "amd64"
+      - name: Unzip the arm architecture
+        unarchive:
+          src: "{{item.file}}" 
+          dest: "{{item.directory}}"
+          remote_src: yes
+        loop:
+          - { file: '/tmp/loki/loki-linux-arm.zip', directory: '/tmp/loki' }
+          - { file: '/tmp/promtail/promtail-linux-arm.zip', directory: '/tmp/promtail' }
+        when: ansible_architecture == "arm"
+    # chmod a+x "loki-linux-amd64" make it executable then move it to /usr/local/bin/loki-linux-amd64
+      - name: Make loki-linux executable in /usr/local/bin/loki-linux
+        copy:
+          src: /tmp/loki/loki-linux-amd64
+          dest: /usr/local/bin/loki-linux
+          owner: root
+          group: root
+          mode: a+x
+          remote_src: yes
+        when: ansible_architecture == "amd64"
+      - name: Make loki-linux executable in /usr/local/bin/loki-linux
+        copy:
+          src: /tmp/loki/loki-linux-arm
+          dest: /usr/local/bin/loki-linux
+          owner: root
+          group: root
+          mode: a+x
+          remote_src: yes
+        when: ansible_architecture == "arm"
+      - name: Make promtail-linux executable in /usr/local/bin/promtail
+        copy:
+          src: /tmp/promtail/promtail-linux-amd64
+          dest: /usr/local/bin/promtail
+          owner: root
+          group: root
+          mode: a+x
+          remote_src: yes
+        when: ansible_architecture == "amd64"
+      - name: Make promtail-linux executable in /usr/local/bin/promtail
+        copy:
+          src: /tmp/promtail/promtail-linux-arm
+          dest: /usr/promtail/bin/promtail
+          owner: root
+          group: root
+          mode: a+x
+          remote_src: yes
+        when: ansible_architecture == "arm"
+    #and create /etc/systemd/system/loki-server.service
+      - name: Create the loki-server.service
+        copy:
+          dest: /etc/systemd/system/loki-server.service
+          content: | 
+              [Unit]
+              Description=Loki service
+              Wants=network-online.target
+              After=network-online.target
+              [Service]
+              User=loki
+              Group=loki
+              Type=simple
+              ExecStart=/usr/local/bin/loki-linux -config.file=/appl/loki/loki-local-config.yaml
+              [Install]
+              WantedBy=multi-user.target
+          owner: root
+          group: root
+          mode: a+x
+      - name: Create the promtail.service
+        copy:
+          dest: /etc/systemd/system/promtail.service
+          content: |
+              [Unit]
+              Description=Promtail service
+              After=network.target
+              [Service]
+              Type=simple
+              User=promtail
+              ExecStart=/usr/local/bin/promtail -config.file /appl/promtail/promtail-local-config.yaml
+              [Install]
+              WantedBy=multi-user.target
+          owner: root
+          group: root
+          mode: a+x
+    # sudo usermod -a -G systemd-journal promtail for promtail get access to read the logs
+      - name: Add the user 'promtail' to the systemd-journal group 
+        user:
+          name: promtail
+          shell: /bin/bash
+          groups: systemd-journal
+          append: yes
+      - name: "Create a volume group on top of {{ volume_group }}"
+        lvg:
+          vg: appl_loki
+          pvs: "{{volume_group}}"
+          pv_options: '-Z y'
+          state: present
+        ignore_errors: yes
+    # create the filesystem for the loki and promtail
+      - name: Create a logical volume of "{{fs_size}}" for /appl/loki
+        lvol:
+          vg: vg_appl
+          lv: lv_loki
+          size: "{{fs_size}}"
+        ignore_errors: yes
+      - name: Create a ext4 filesystem on /dev/vg_appl/lv_loki
+        filesystem:
+          force: no
+          fstype: ext4
+          dev: /dev/vg_appl/lv_loki
+        ignore_errors: yes
+      - name: /appl/loki mountpoint
+        mount:
+          path: /appl/loki
+          src: /dev/vg_appl/lv_loki
+          fstype: ext4
+          opts: defaults
+          state: mounted
+        ignore_errors: yes
+      - name: Create a logical volume of "{{fs_size}}" for /appl/promtail
+        lvol:
+          vg: vg_appl
+          lv: lv_promtail
+          size: "{{fs_size}}"
+        ignore_errors: yes
+      - name: Create a ext4 filesystem on /dev/vg_appl/lv_promtail
+        filesystem:
+          force: no
+          fstype: ext4
+          dev: /dev/vg_appl/lv_promtail
+        ignore_errors: yes
+      - name: /appl/promtail mountpoint
+        mount:
+          path: /appl/loki
+          src: /dev/vg_appl/lv_promtail
+          fstype: ext4
+          opts: defaults
+          state: mounted
+        ignore_errors: yes
+      # loki 
+      - name: Change owner for /appl/loki
+        shell: >
+            chown loki:loki /appl/loki
+            chmod 0750 /appl/loki
+        args:
+          executable: /bin/bash
+      # promtail
+      - name: Change owner for /appl/promtail
+        shell: >
+            chown promtail:promtail /appl/promtail
+            chmod 0750 /appl/promtail
+        args:
+          executable: /bin/bash
+      # Configuration files are created to the right address and provide a basic config
+      #For any changes should be done manual.
+      - name: Create a basic loki-local-config.yaml
+        copy:
+          dest: /appl/loki/loki-local-config.yaml
+          content: |
+              auth_enabled: false
+              server:
+                http_listen_port: 3100
+              ingester:
+                lifecycler:
+                  address: 127.0.0.1
+                  ring:
+                    kvstore:
+                      store: inmemory
+                    replication_factor: 1
+                  final_sleep: 0s
+                chunk_idle_period: 5m
+                chunk_retain_period: 30s
+                max_transfer_retries: 0
+              schema_config:
+                configs:
+                  - from: 2018-04-15
+                    store: boltdb
+                    object_store: filesystem
+                    schema: v11
+                    index:
+                      prefix: index_
+                      period: 168h
+              storage_config:
+                boltdb:
+                  directory: /tmp/loki/index
+                  
+                filesystem:
+                  directory: /tmp/loki/chunks
+              limits_config:
+                enforce_metric_name: false
+                reject_old_samples: true
+                reject_old_samples_max_age: 168h
+              chunk_store_config:
+                max_look_back_period: 0s
+              table_manager:
+                retention_deletes_enabled: false
+                retention_period: 0s
+          owner: loki
+          group: loki
+          mode: '0640'
+      - name: Create a basic promtail-local-config.yaml
+        copy:
+          dest: /appl/promtail/promtail-local-config.yaml
+          content: |
+              server:
+                http_listen_port: 9080
+                grpc_listen_port: 0
+
+              positions:
+                filename: /tmp/positions.yaml
+
+              clients:
+                - url: http://127.0.0.1:3100/loki/api/v1/push
+
+              scrape_configs:
+                - job_name: journal
+                  journal:
+                    max_age: 12h
+                    labels:
+                      job: systemd-journal
+                  relabel_configs:
+                    - source_labels: ['__journal__systemd_unit']
+                      target_label: 'unit'
+          owner: promtail
+          group: promtail
+          mode: '0640'         
+      # systemctl daemond-reload
+      - name: restart the daemond
+        shell: >
+          systemctl daemon-reload
+        args:
+          executable: /bin/bash
+      # systemctl start/stop/restart/status loki-server.service priviledges
+      # sudoers permissions 
+      - name: sudo perimissions fr the user loki
+        copy:
+          dest: /etc/sudoers.d/60_loki
+          content: |
+              User_Alias      GROUPONE = loki
+              GROUPONE        ALL=(ALL) NOPASSWD:/usr/bin/vim /usr/lib/systemd/system/loki-server.service
+              GROUPONE        ALL=(ALL) NOPASSWD: /usr/bin/systemctl start loki-server.service
+              GROUPONE        ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop loki-server.service
+              GROUPONE        ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart loki-server.service
+              GROUPONE        ALL=(ALL) NOPASSWD: /usr/bin/systemctl status loki-server.service
+              GROUPONE        ALL=(ALL) NOPASSWD: /usr/bin/systemctl start loki-server
+              GROUPONE        ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart loki-server
+              GROUPONE        ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop loki-server
+              GROUPONE        ALL=(ALL) NOPASSWD: /usr/bin/systemctl status loki-server
+          owner: root
+          group: root
+          mode: '0640'
+      # systemctl start/stop/restart/status promtail.service priviledges
+      - name: sudo perimissions fr the user promtail
+        copy:
+          dest: /etc/sudoers.d/60_promtail
+          content: |
+              User_Alias      GROUPONE = promtail
+              GROUPONE        ALL=(ALL) NOPASSWD:/usr/bin/vim /usr/lib/systemd/system/promtail.service
+              GROUPONE        ALL=(ALL) NOPASSWD: /usr/bin/systemctl start promtail.service
+              GROUPONE        ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop promtail.service
+              GROUPONE        ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart promtail.service
+              GROUPONE        ALL=(ALL) NOPASSWD: /usr/bin/systemctl status promtail.service
+              GROUPONE        ALL=(ALL) NOPASSWD: /usr/bin/systemctl start promtail
+              GROUPONE        ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart promtail
+              GROUPONE        ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop promtail
+              GROUPONE        ALL=(ALL) NOPASSWD: /usr/bin/systemctl status promtail
+          owner: root
+          group: root
+          mode: '0640'
+      - name: enable loki-server.service and ensure it is not masked
+        systemd:
+          name: loki-server
+          state: reloaded
+          daemon_reload: yes
+          force: yes
+      - name: enable promtail.service and ensure it is not masked
+        systemd:
+          name: promtail
+          state: reloaded
+          daemon_reload: yes
+          force: yes

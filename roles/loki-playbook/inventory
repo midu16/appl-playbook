@@ -1,0 +1,13 @@
+[LogMonitoring]
+ostechnix:children
+ostecharm:children
+
+[ostechnix]
+berlin.ostechnix.lan    ansible_host="192.168.111.190"     node_type="client"
+hamburg.ostechnix.lan   ansible_host="192.168.111.195"     node_type="client-server"
+sibiu.ostechnix.lan     ansible_host="192.168.111.199"     node_type="client"
+
+
+[ostecharm]
+wien.ostecharm.lan      ansible_host="192.168.112.195"     node_type="client"
+salzburg.ostecharm.lan  ansible_host="192.168.112.200"     node_type="client"
