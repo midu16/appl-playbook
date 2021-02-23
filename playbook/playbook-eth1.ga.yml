@@ -1,0 +1,12 @@
+---
+- hosts: all
+  roles:
+    - role: eth.static.routing
+      base_user: ocadmin
+      base_user_group: ocadmin
+      source_interface: eth1.ga
+      install_path: /etc/sysconfig/network-scripts/
+      source_gateway: 172.20.201.65
+      destination_address:
+          - 172.20.241.39
+          - 172.20.201.39

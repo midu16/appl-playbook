@@ -1,0 +1,34 @@
+---
+# tasks file for eth1.ga
+
+- name: check if the "{{install_path}}/route-{{source_interface}}" exists
+  stat:
+    path: "{{install_path}}/route-{{source_interface}}"
+  register: p
+
+- name: create the "{{install_path}}/route-{{source_interface}}"
+  file:
+    path: "{{install_path}}/route-{{source_interface}}"
+    state: touch
+    owner: "{{base_user}}"
+    group: "{{base_user_group}}"
+    mode: "0771"
+  when: p.stat.exists is defined and not p.stat.exists
+
+- name: set the acl rules on the "{{install_path}}/route-{{source_interface}}"
+  acl:
+    path: "{{install_path}}/route-{{source_interface}}"
+    entity: "{{base_user}}"
+    etype: user
+    permissions: rw
+    state: present
+  when: p.stat.exists is defined and not p.stat.exists
+  
+- name: add the new route to the "{{source_interface}}"
+  lineinfile:
+    path: "{{install_path}}/route-{{source_interface}}"
+    line: |
+      # static routing for "{{source_interface}}"
+      "{{ item }}/32 via {{source_gateway}}"
+    insertafter: EOF
+  loop: "{{destination_address}}"
