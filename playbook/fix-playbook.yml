@@ -3,39 +3,63 @@
   become: true
   become_user: root
   become_method: sudo
-  hosts: mngt
+  hosts: all 
   vars:
-	static_routing_path: '/etc/sysconfig/network-scripts/'
-	route_user: ocadmin
-	route_group: ocadmin
+    static_routing_path: '/etc/sysconfig/network-scripts'
+    var_path: '/var/log'
+    route_user: midu
+    route_group: midu
   tasks:
-    - name: Check that the somefile.conf exists
-      stat:
-      path: /etc/file.txt
-    register: stat_result
-
     - name: Print all facts
       debug:
         var: ansible_facts["interfaces"]
-		
+
     - name: Print all interfaces
       debug:
         var: "{{item}}"
       loop: "{{ ansible_facts['interfaces'] }}"
-	  
-    - name: Touch file
+
+    - name: Check that the routing files exists
+      stat:
+        path: "{{static_routing_path}}/route-{{item}}"
+      register: stat_result
+      loop: "{{ansible_facts['interfaces']}}"
+
+    - name: Debug the stat_result
+      debug:
+        var: stat_result.results
+
+    - name: "Touch the routing file {{static_routing_path}}"
       file:
-        path: "/tmp/route-{{item}}"
+        path: "{{static_routing_path}}/route-{{item.item}}"
         state: touch
-		owner: "{{route_user}}"
-		group: "{{
+        owner: "{{route_user}}"
+        group: "{{route_group}}"
         mode: u=rw,g=r,o=r
-      loop: "{{ ansible_facts['interfaces'] }}"
-	  
-    - name: remote the eth0
+      loop: "{{ stat_result.results }}"
+      when: not item.stat.exists
+
+    - name: Remove route files of the eth0 and localhost interfaces 
       file:
-        path: "/tmp/route-{{item}}"
+        path: "{{static_routing_path}}/route-{{item}}"
         state: absent
       loop:
         - lo
         - eth0
+    
+    - name: "Count the number of lines into the {{var_path}}/messages"
+      shell: "wc -l {{var_path}}/messages | awk '{print $1}' "
+      register: number_lines_of_messages
+
+    - name: Debug the lines of messages
+      become: yes
+      become_user: root
+      debug:
+        var: number_lines_of_messages.stdout
+
+    - name: Generate /etc/hosts file
+      become: yes
+      become_user: root
+      template:
+        src= hosts.j2
+        dest=/etc/hosts
