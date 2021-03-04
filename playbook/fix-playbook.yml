@@ -1,0 +1,41 @@
+---
+- name: Fixing discovered issues
+  become: true
+  become_user: root
+  become_method: sudo
+  hosts: mngt
+  vars:
+	static_routing_path: '/etc/sysconfig/network-scripts/'
+	route_user: ocadmin
+	route_group: ocadmin
+  tasks:
+    - name: Check that the somefile.conf exists
+      stat:
+      path: /etc/file.txt
+    register: stat_result
+
+    - name: Print all facts
+      debug:
+        var: ansible_facts["interfaces"]
+		
+    - name: Print all interfaces
+      debug:
+        var: "{{item}}"
+      loop: "{{ ansible_facts['interfaces'] }}"
+	  
+    - name: Touch file
+      file:
+        path: "/tmp/route-{{item}}"
+        state: touch
+		owner: "{{route_user}}"
+		group: "{{
+        mode: u=rw,g=r,o=r
+      loop: "{{ ansible_facts['interfaces'] }}"
+	  
+    - name: remote the eth0
+      file:
+        path: "/tmp/route-{{item}}"
+        state: absent
+      loop:
+        - lo
+        - eth0
