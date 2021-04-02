@@ -1,0 +1,9 @@
+---
+- name: Update the hosts file based on inventory
+  gather_facts: true
+  hosts: all
+  vars:
+    - managed_host: 'appened uirmgmtint'
+    - managed_end: 'EndOfBlock'
+  roles:
+    - hosts-role 

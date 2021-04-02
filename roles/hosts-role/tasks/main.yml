@@ -1,0 +1,8 @@
+---
+# tasks file for hosts-role
+- name: update the /etc/hosts
+  template:
+     dest: /etc/hosts
+     src: "{{role_path}}/templates/hosts.j2"
+     owner: root
+     group: root
